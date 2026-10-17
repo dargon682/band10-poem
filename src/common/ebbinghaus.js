@@ -87,6 +87,31 @@ export function remainText(plan, now) {
   return "还需 " + Math.max(1, Math.ceil(diff / minute)) + " 分钟"
 }
 
+// 距离下次复习还有多久（紧凑写法，供窄屏状态行使用）
+export function remainShort(plan, now) {
+  if (!plan) {
+    return ""
+  }
+  if (isFinished(plan)) {
+    return "已背完"
+  }
+  const at = dueAt(plan.start, plan.step)
+  const diff = at - now
+  if (diff <= 0) {
+    return "该复习"
+  }
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff >= day) {
+    return Math.ceil(diff / day) + "天"
+  }
+  if (diff >= hour) {
+    return Math.ceil(diff / hour) + "时"
+  }
+  return Math.max(1, Math.ceil(diff / minute)) + "分"
+}
+
 export default {
   INTERVALS: INTERVALS,
   TOTAL: TOTAL,
@@ -97,5 +122,6 @@ export default {
   advance: advance,
   createPlan: createPlan,
   progressText: progressText,
-  remainText: remainText
+  remainText: remainText,
+  remainShort: remainShort
 }

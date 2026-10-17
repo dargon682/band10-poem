@@ -159,7 +159,10 @@ export default {
 }
 
 .list {
-  flex: 1;
+  position: absolute;
+  left: 0;
+  top: 94px;
+  bottom: 10px;
   width: 100%;
 }
 
@@ -173,10 +176,10 @@ export default {
 
 .item {
   width: 96%;
-  height: 40px;
+  height: 44px;
   margin-left: 4px;
   margin-bottom: 6px;
-  border-radius: 20px;
+  border-radius: 22px;
   background-color: rgba(255, 255, 255, 0.1);
   padding-left: 8px;
   padding-right: 12px;
@@ -198,17 +201,17 @@ export default {
 
 .act {
   width: 30px;
-  height: 26px;
-  border-radius: 13px;
+  height: 34px;
+  border-radius: 17px;
   margin-right: 6px;
-  font-size: 14px;
+  font-size: 16px;
   color: #ffffff;
   background-color: rgba(120, 200, 120, 0.5);
 }
 
 .chk {
   width: 30px;
-  font-size: 14px;
+  font-size: 16px;
   color: #9fd18b;
   margin-right: 6px;
   text-align: center;

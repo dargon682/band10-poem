@@ -124,6 +124,14 @@ export default {
   position: absolute;
 }
 
+.list {
+  position: absolute;
+  left: 0;
+  top: 70px;
+  bottom: 62px;
+  width: 100%;
+}
+
 .item {
   height: 52px;
   margin-left: 6px;
@@ -185,11 +193,11 @@ export default {
 
 .clr {
   position: absolute;
-  left: 61px;
-  bottom: 2px;
-  width: 90px;
-  height: 28px;
-  border-radius: 14px;
+  left: 54px;
+  bottom: 22px;
+  width: 104px;
+  height: 34px;
+  border-radius: 17px;
   background-color: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }

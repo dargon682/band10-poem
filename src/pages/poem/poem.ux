@@ -1,6 +1,6 @@
 <template>
   <div class="page" @swipe="onSwipe">
-    <!-- 左右滑动切换上/下一篇 -->
+    <!-- 正文滚动区：绝对定位限定高度，避免正文溢出屏幕 -->
     <scroll class="column box center" scroll-y="true" bounces="true">
       <div class="item1"></div>
 
@@ -10,29 +10,34 @@
       </div>
 
       <div class="item1"></div>
-      <div class="item1"></div>
-      <div class="item1"></div>
     </scroll>
+
     <image class="cover" src="/common/icon/cover.png"></image>
     <text class="time">{{ time }}</text>
 
     <text class="title">{{ text }}</text>
     <image class="back" src="/common/icon/back.png" onclick="back"></image>
 
-    <!-- 艾宾浩斯记忆计划状态，到期可完成本轮复习 -->
+    <!-- 记忆计划状态；到期时出现“完成本轮” -->
     <div class="row status">
       <text class="stxt">{{ status }}</text>
-      <input class="act" if="{{ canReview }}" type="button" value="{{ reviewLabel }}" style="font-size: 12px" @click="review" />
+      <input class="act" if="{{ canReview }}" type="button" value="{{ reviewLabel }}" style="font-size: 13px" @click="review" />
     </div>
 
+    <!-- 底部操作：对勾框 / 收藏 / 字号 -->
     <div class="row toolbar">
-      <!-- 打对勾的框：勾选即标记已背完并加入遗忘曲线复习排程，取消则移出 -->
-      <div class="mark" @click="toggleMark">
-        <text class="mtxt">{{ markText }}</text>
+      <div class="tbtn markbox" @click="toggleMark">
+        <text class="glyph" style="color: {{ markColor }}">{{ markText }}</text>
       </div>
-      <input class="op" type="button" value="{{ favLabel }}" style="font-size: 13px" @click="toggleFav" />
-      <input class="op" type="button" value="A-" style="font-size: 13px" @click="smaller" />
-      <input class="op" type="button" value="A+" style="font-size: 13px" @click="bigger" />
+      <div class="tbtn" @click="toggleFav">
+        <text class="glyph" style="color: {{ favColor }}">{{ favText }}</text>
+      </div>
+      <div class="tbtn" @click="smaller">
+        <text class="glyph tiny">A-</text>
+      </div>
+      <div class="tbtn" @click="bigger">
+        <text class="glyph tiny">A+</text>
+      </div>
     </div>
   </div>
 </template>
@@ -59,11 +64,13 @@ export default {
     size: 26,
     lineHeight: 42,
     isFav: false,
-    favLabel: "☆ 收藏",
+    favText: "☆",
+    favColor: "#cccccc",
     names: [],
     idx: 0,
     marked: false,
     markText: "",
+    markColor: "#8a8a8a",
     status: "",
     canReview: false,
     reviewLabel: "完成本轮"
@@ -100,7 +107,8 @@ export default {
 
     store.isFavorite(this.which, this.text, (fav) => {
       this.isFav = fav
-      this.favLabel = fav ? "★ 已收藏" : "☆ 收藏"
+      this.favText = fav ? "★" : "☆"
+      this.favColor = fav ? "#ffd166" : "#cccccc"
     })
     store.pushRecent(this.which, this.text)
     this.syncPlan()
@@ -113,11 +121,17 @@ export default {
       if (!plan) {
         this.marked = false
         this.markText = ""
+        this.markColor = "#8a8a8a"
         this.status = this.$t("mem.none")
       } else {
         this.marked = true
         this.markText = "✓"
-        this.status = ebb.progressText(plan) + " · " + ebb.remainText(plan, now)
+        this.markColor = "#9fd18b"
+        if (ebb.isFinished(plan)) {
+          this.status = ebb.TOTAL + "/" + ebb.TOTAL + "轮 · 已背完"
+        } else {
+          this.status = plan.step + 1 + "/" + ebb.TOTAL + "轮 · " + ebb.remainShort(plan, now)
+        }
       }
     })
   },
@@ -163,7 +177,8 @@ export default {
   toggleFav() {
     store.toggleFavorite(this.which, this.text, (fav) => {
       this.isFav = fav
-      this.favLabel = fav ? "★ 已收藏" : "☆ 收藏"
+      this.favText = fav ? "★" : "☆"
+      this.favColor = fav ? "#ffd166" : "#cccccc"
     })
   },
   smaller() {
@@ -191,9 +206,9 @@ export default {
 @import "../../common/style.css";
 
   .item1 {
-    height: 38px;
-    margin-top: 9px;
-    margin-bottom: 9px;
+    height: 26px;
+    margin-top: 6px;
+    margin-bottom: 6px;
     border-radius: 9px;
   }
 
@@ -203,7 +218,6 @@ export default {
 
   .page {
     align-items: center;
-    justify-content: center;
     background-color: #000000;
     flex: 1;
     display: flex;
@@ -218,12 +232,10 @@ export default {
     color: rgba(255, 255, 255, 1);
     font-size: 19px;
     font-weight: 500;
-    letter-spacing: 0px;
     line-height: 28px;
     text-align: center;
-    vertical-align: top;
     width: 70%;
-    text-align: center;
+    left: 15%;
     top: 32px;
   }
 
@@ -237,11 +249,13 @@ export default {
     color: #ffffff;
   }
 
+  /* 正文区：绝对定位 + 上下边界，保证正文只在可视区内滚动 */
   .box {
-    margin-top: 32px;
+    position: absolute;
+    left: 3px;
+    top: 46px;
+    bottom: 100px;
     width: 97%;
-    flex: 1;
-    margin-bottom: 66px;
   }
 
   .description {
@@ -266,65 +280,60 @@ export default {
   /* 记忆计划状态行 */
   .status {
     position: absolute;
-    left: 0px;
-    bottom: 34px;
-    width: 212px;
-    height: 26px;
+    left: 10px;
+    width: 192px;
+    bottom: 62px;
+    height: 30px;
     align-items: center;
-    padding-left: 8px;
-    padding-right: 6px;
   }
 
   .stxt {
     flex: 1;
-    font-size: 13px;
+    font-size: 12px;
     color: #9fd18b;
     text-overflow: ellipsis;
   }
 
   .act {
-    width: 68px;
-    height: 22px;
-    border-radius: 11px;
+    width: 78px;
+    height: 28px;
+    border-radius: 14px;
     color: #ffffff;
-    background-color: rgba(120, 200, 120, 0.45);
+    background-color: rgba(120, 200, 120, 0.5);
   }
 
+  /* 底部按钮行：加宽加高，便于点按 */
   .toolbar {
     position: absolute;
-    left: 0px;
-    bottom: 2px;
-    width: 212px;
-    height: 28px;
+    left: 9px;
+    width: 194px;
+    bottom: 16px;
+    height: 40px;
     align-items: center;
-    padding-left: 3px;
+    justify-content: space-between;
   }
 
-  /* 打对勾的框 */
-  .mark {
+  .tbtn {
     display: flex;
-    width: 30px;
-    height: 26px;
-    border-radius: 13px;
-    margin-left: 3px;
-    margin-right: 3px;
-    background-color: rgba(255, 255, 255, 0.15);
+    width: 45px;
+    height: 40px;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.16);
     justify-content: center;
     align-items: center;
   }
 
-  .mtxt {
-    font-size: 16px;
-    color: #9fd18b;
+  /* 打对勾的框：描边即未勾选，勾选后显示绿色对勾 */
+  .markbox {
+    border: 2px solid rgba(255, 255, 255, 0.45);
   }
 
-  .op {
-    width: 48px;
-    height: 26px;
-    margin-left: 3px;
-    margin-right: 3px;
-    border-radius: 13px;
-    background-color: rgba(255, 255, 255, 0.15);
+  .glyph {
+    font-size: 19px;
+  }
+
+  .tiny {
+    font-size: 15px;
     color: #ffffff;
   }
 </style>
