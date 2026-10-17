@@ -5,3 +5,5 @@
 /dist
 /build
 .husky/
+# gofile guest token 本地缓存（不入库）
+scripts/.gofile_token
