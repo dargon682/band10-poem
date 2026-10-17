@@ -111,10 +111,11 @@ export default {
 
 .bar {
   width: 100%;
-  height: 45px;
+  height: 54px;
   align-items: center;
-  padding-left: 3px;
-  padding-right: 6px;
+  /* 左上角返回键向内收，避开胶囊屏圆角 */
+  padding-left: 14px;
+  padding-right: 8px;
 }
 
 .back {
@@ -131,8 +132,12 @@ export default {
   text-overflow: ellipsis;
 }
 
+/* 结果区显式限定上下边界，避免与底部键盘互相覆盖错乱 */
 .results {
-  flex: 1;
+  position: absolute;
+  left: 0;
+  top: 54px;
+  bottom: 0;
   width: 100%;
 }
 

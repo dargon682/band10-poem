@@ -213,8 +213,37 @@ function removePlan(grade, name, cb) {
   })
 }
 
+// 一次性读出收藏 / 最近阅读 / 记忆计划，供正文页在进入时建内存副本；
+// 之后所有状态切换都基于内存副本，落盘只写不读，避免“写入后立即回读”拿不到新值
+function getCaches(cb) {
+  getFavorites(function (favs) {
+    getRecent(function (recent) {
+      readMemory(function (memMap) {
+        cb({ favs: favs, recent: recent, memMap: memMap })
+      })
+    })
+  })
+}
+
+// 只写不读的落盘接口
+function saveFavorites(arr) {
+  writeArray(FAV_KEY, arr)
+}
+
+function saveRecent(arr) {
+  writeArray(RECENT_KEY, arr)
+}
+
+function saveMemoryMap(obj) {
+  writeMemory(obj)
+}
+
 export default {
   getFavorites: getFavorites,
+  getCaches: getCaches,
+  saveFavorites: saveFavorites,
+  saveRecent: saveRecent,
+  saveMemoryMap: saveMemoryMap,
   isFavorite: isFavorite,
   toggleFavorite: toggleFavorite,
   getRecent: getRecent,

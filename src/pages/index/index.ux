@@ -140,6 +140,15 @@ export default {
   position: absolute;
 }
 
+/* 列表显式限定上边界，滚动内容不再爬到顶部与“课本”标题、更多图标重叠 */
+.list {
+  position: absolute;
+  left: 0;
+  top: 66px;
+  bottom: 0;
+  width: 100%;
+}
+
 .item {
   justify-content: center;
   margin-left: 6px;

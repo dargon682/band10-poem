@@ -167,34 +167,37 @@ export default {
   align-items: center;
 }
 
+/* 篇名/年级均给显式宽度：Vela 中仅靠 flex:1 会被压成 0 宽，导致只剩年级可见 */
 .name {
   color: white;
-  font-size: 21px;
+  font-size: 19px;
   text-overflow: ellipsis;
   lines: 1;
-  flex: 1;
+  width: 106px;
   margin-left: 8px;
 }
 
 .grade {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
+  font-size: 13px;
+  width: 70px;
+  text-align: right;
   margin-right: 8px;
 }
 
 .back {
   position: absolute;
-  left: 4px;
-  top: 4px;
-  width: 45px;
-  height: 45px;
-  opacity: 0.5;
+  left: 14px;
+  top: 16px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.55;
 }
 
 .clr {
   position: absolute;
   left: 54px;
-  bottom: 22px;
+  bottom: 30px;
   width: 104px;
   height: 34px;
   border-radius: 17px;

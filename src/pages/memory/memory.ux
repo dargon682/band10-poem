@@ -9,7 +9,7 @@
     <scroll class="list" scroll-y="true" bounces="true">
       <text class="sec" if="{{due.length > 0}}">{{ dueTitle }}</text>
       <div class="row item" for="{{due}}" tid="key">
-        <input class="act" type="button" value="✓" @click="finish($item)" />
+        <input class="act" type="button" value="√" @click="finish($item)" />
         <text class="nm" @click="openItem($item)">{{ $item.name }}</text>
         <text class="gd">{{ $item.grade }}</text>
       </div>
@@ -22,7 +22,7 @@
 
       <text class="sec" if="{{finished.length > 0}}">{{ doneTitle }}</text>
       <div class="row item" for="{{finished}}" tid="key">
-        <text class="chk">✓</text>
+        <text class="chk">√</text>
         <text class="nm" @click="openItem($item)">{{ $item.name }}</text>
         <text class="gd">{{ $item.grade }}</text>
       </div>
@@ -53,7 +53,9 @@ export default {
     learning: [],
     finished: [],
     empty: false,
-    all: []
+    all: [],
+    // 进入页面时读出的记忆计划内存副本，所有变更只改副本，落盘只写不读
+    map: {}
   },
   onInit() {
     this.all = grades.getAllPoems()
@@ -69,46 +71,59 @@ export default {
   onDestroy() {
     clearInterval(this.timer)
   },
-  // 依据艾宾浩斯排程把全部篇目分为：今日待复习 / 背诵中 / 已完成
+  // 一次性读出全量计划到内存副本，之后只基于副本渲染
   refresh() {
     store.getMemoryMap((map) => {
-      const now = Date.now()
-      const due = []
-      const learning = []
-      const finished = []
-      let doneCount = 0
-      for (let i = 0; i < this.all.length; i++) {
-        const p = this.all[i]
-        const plan = map[store.poemKey(p.grade, p.name)]
-        if (!plan) {
-          continue
-        }
-        if (ebb.isFinished(plan)) {
-          doneCount++
-          finished.push({ name: p.name, grade: p.grade, remain: "" })
-        } else if (ebb.isDue(plan, now)) {
-          due.push({ name: p.name, grade: p.grade, remain: "" })
-        } else {
-          learning.push({ name: p.name, grade: p.grade, remain: ebb.remainText(plan, now) })
-        }
-      }
-      this.due = due
-      this.learning = learning
-      this.finished = finished
-      this.empty = due.length === 0 && learning.length === 0 && finished.length === 0
-      this.progress = this.$t("mem.done") + " " + doneCount + "/" + this.all.length + " · " + this.$t("mem.learning") + " " + learning.length
+      this.map = map
+      this.build()
     })
   },
-  // 完成本轮复习，推进到下一轮间隔
-  finish(item) {
-    store.getPlan(item.grade, item.name, (plan) => {
+  // 依据艾宾浩斯排程把全部篇目分为：今日待复习 / 背诵中 / 已完成
+  build() {
+    const map = this.map
+    const now = Date.now()
+    const due = []
+    const learning = []
+    const finished = []
+    let doneCount = 0
+    for (let i = 0; i < this.all.length; i++) {
+      const p = this.all[i]
+      const plan = map[store.poemKey(p.grade, p.name)]
       if (!plan) {
-        return
+        continue
       }
-      store.setPlan(item.grade, item.name, ebb.advance(plan), () => {
-        this.refresh()
-      })
-    })
+      if (ebb.isFinished(plan)) {
+        doneCount++
+        finished.push({ name: p.name, grade: p.grade, remain: "" })
+      } else if (ebb.isDue(plan, now)) {
+        due.push({ name: p.name, grade: p.grade, remain: "" })
+      } else {
+        learning.push({ name: p.name, grade: p.grade, remain: ebb.remainText(plan, now) })
+      }
+    }
+    this.due = due
+    this.learning = learning
+    this.finished = finished
+    this.empty = due.length === 0 && learning.length === 0 && finished.length === 0
+    this.progress = this.$t("mem.done") + " " + doneCount + "/" + this.all.length + " · " + this.$t("mem.learning") + " " + learning.length
+  },
+  // 完成本轮复习，推进到下一轮间隔（只改内存副本 + 只写落盘，避免回读竞态）
+  finish(item) {
+    const key = store.poemKey(item.grade, item.name)
+    const plan = this.map[key]
+    if (!plan) {
+      return
+    }
+    const next = {}
+    for (const k in this.map) {
+      if (this.map[k] !== undefined) {
+        next[k] = this.map[k]
+      }
+    }
+    next[key] = ebb.advance(plan)
+    this.map = next
+    store.saveMemoryMap(next)
+    this.build()
   },
   openItem(item) {
     router.push({
@@ -143,6 +158,8 @@ export default {
 .title {
   font-size: 22px;
   color: #ffffff;
+  /* 让出左上角返回键的位置，避免文字与返回键叠在一起 */
+  margin-left: 56px;
 }
 
 .time {
@@ -162,7 +179,7 @@ export default {
   position: absolute;
   left: 0;
   top: 94px;
-  bottom: 10px;
+  bottom: 34px;
   width: 100%;
 }
 
@@ -175,7 +192,7 @@ export default {
 }
 
 .item {
-  width: 96%;
+  width: 97%;
   height: 44px;
   margin-left: 4px;
   margin-bottom: 6px;
@@ -186,17 +203,22 @@ export default {
   align-items: center;
 }
 
+/* 篇名/年级均给显式宽度：Vela 中仅靠 flex:1 会被压成 0 宽，篇名就看不见了 */
 .nm {
-  flex: 1;
-  font-size: 17px;
+  width: 78px;
+  font-size: 16px;
   color: #ffffff;
   text-overflow: ellipsis;
+  lines: 1;
 }
 
 .gd {
+  width: 68px;
   font-size: 12px;
   color: #9a9a9a;
-  margin-left: 6px;
+  text-align: right;
+  text-overflow: ellipsis;
+  lines: 1;
 }
 
 .act {
@@ -217,8 +239,10 @@ export default {
   text-align: center;
 }
 
+/* 空状态提示：显式限定宽度并留出左右边距，避免长句右侧被屏幕裁掉 */
 .tip {
-  width: 100%;
+  width: 176px;
+  margin-left: 18px;
   font-size: 14px;
   color: #8a8a8a;
   text-align: center;
@@ -231,10 +255,10 @@ export default {
 
 .back {
   position: absolute;
-  left: 4px;
-  top: 4px;
-  width: 42px;
-  height: 42px;
+  left: 14px;
+  top: 16px;
+  width: 40px;
+  height: 40px;
   opacity: 0.6;
 }
 </style>

@@ -14,6 +14,7 @@
     <text class="time">{{ time }}</text>
 
     <text class="title">{{ which }}</text>
+    <image class="back" src="/common/icon/back.png" onclick="back"></image>
   </div>
 </template>
 
@@ -53,11 +54,12 @@ export default {
       }
     })
   },
+  back() {
+    router.back()
+  },
   toHomePage(eve) {
     if (eve.direction === "right") {
-      router.replace({
-        uri: "/pages/index"
-      })
+      router.back()
     }
   }
 }
@@ -85,7 +87,17 @@ export default {
   lines: 1
 }
 
+/* 列表显式限定上边界，滚动内容不再爬到顶部与年级标题重叠 */
+.list {
+  position: absolute;
+  left: 0;
+  top: 70px;
+  bottom: 0;
+  width: 100%;
+}
+
 .title {
+	left: 46px;
 	top: 39px;
 	width: 121px;
 	height: 27px;
@@ -98,6 +110,16 @@ export default {
 	text-align: center;
 	vertical-align: top;
 	position: absolute;
+}
+
+/* 左上角返回键：向内收，避开胶囊屏圆角，保证可点中 */
+.back {
+  position: absolute;
+  left: 14px;
+  top: 16px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.55;
 }
 
 .center{

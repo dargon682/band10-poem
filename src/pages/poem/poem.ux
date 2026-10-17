@@ -1,27 +1,24 @@
 <template>
   <div class="page" @swipe="onSwipe">
-    <!-- 正文滚动区：绝对定位限定高度，避免正文溢出屏幕 -->
-    <scroll class="column box center" scroll-y="true" bounces="true">
-      <div class="item1"></div>
-
-      <div class="description footer column center">
+    <!-- 正文滚动区：绝对定位 + 显式高度，只在自身区域内滚动，不压住顶部篇名、不动底部按钮 -->
+    <scroll class="box" scroll-y="true" bounces="true">
+      <div class="padtop"></div>
+      <div class="card column center">
         <text class="a">{{ people }}</text>
         <text class="b" style="font-size: {{ size }}px; line-height: {{ lineHeight }}px">{{ poem }}</text>
       </div>
-
-      <div class="item1"></div>
+      <div class="padbottom"></div>
     </scroll>
 
     <image class="cover" src="/common/icon/cover.png"></image>
     <text class="time">{{ time }}</text>
-
     <text class="title">{{ text }}</text>
     <image class="back" src="/common/icon/back.png" onclick="back"></image>
 
     <!-- 记忆计划状态；到期时出现“完成本轮” -->
     <div class="row status">
       <text class="stxt">{{ status }}</text>
-      <input class="act" if="{{ canReview }}" type="button" value="{{ reviewLabel }}" style="font-size: 13px" @click="review" />
+      <input class="act" if="{{ canReview }}" type="button" value="{{ reviewLabel }}" @click="review" />
     </div>
 
     <!-- 底部操作：对勾框 / 收藏 / 字号 -->
@@ -52,6 +49,20 @@ import clock from "../../common/clock.js"
 
 const MIN_SIZE = 20
 const MAX_SIZE = 34
+const RECENT_MAX = 10
+// 未加入记忆计划时对勾用近黑灰（视觉上等同空框），已加入后变绿
+const CHECK_OFF = "#2b2b2b"
+const CHECK_ON = "#9fd18b"
+
+function cloneMap(src) {
+  const out = {}
+  for (const k in src) {
+    if (src[k] !== undefined) {
+      out[k] = src[k]
+    }
+  }
+  return out
+}
 
 export default {
   // 页面级组件的数据模型，影响传入数据的覆盖机制：private内定义的属性不允许被覆盖
@@ -63,17 +74,20 @@ export default {
     which: "",
     size: 26,
     lineHeight: 42,
-    isFav: false,
     favText: "☆",
     favColor: "#cccccc",
     names: [],
     idx: 0,
-    marked: false,
-    markText: "",
-    markColor: "#8a8a8a",
+    markText: "√",
+    markColor: CHECK_OFF,
     status: "",
     canReview: false,
-    reviewLabel: "完成本轮"
+    reviewLabel: "完成本轮",
+    // 进入页面时一次性读出的内存副本；之后所有切换只改副本，落盘只写不读，
+    // 避免 @system.storage「写入后立即回读」拿到旧值导致界面不刷新
+    favs: [],
+    recent: [],
+    memMap: {}
   },
   onInit() {
     this.reviewLabel = this.$t("action.review")
@@ -85,11 +99,17 @@ export default {
         break
       }
     }
-    this.applyCurrent()
 
     store.getFontSize((size) => {
       this.size = size
       this.lineHeight = Math.round(size * 1.6)
+    })
+
+    store.getCaches((c) => {
+      this.favs = c.favs || []
+      this.recent = c.recent || []
+      this.memMap = c.memMap || {}
+      this.applyCurrent()
     })
 
     this.timer = clock.startClock((t) => {
@@ -104,58 +124,97 @@ export default {
     const item = poems.getPoem(this.which, this.text)
     this.people = item ? item.author : ""
     this.poem = item ? item.content : "暂无内容"
-
-    store.isFavorite(this.which, this.text, (fav) => {
-      this.isFav = fav
-      this.favText = fav ? "★" : "☆"
-      this.favColor = fav ? "#ffd166" : "#cccccc"
-    })
-    store.pushRecent(this.which, this.text)
-    this.syncPlan()
+    this.refreshFav()
+    this.recordRecent()
+    this.refreshPlan()
   },
-  // 同步本篇的复习计划状态
-  syncPlan() {
-    store.getPlan(this.which, this.text, (plan) => {
-      const now = Date.now()
-      this.canReview = ebb.isDue(plan, now)
-      if (!plan) {
-        this.marked = false
-        this.markText = ""
-        this.markColor = "#8a8a8a"
-        this.status = this.$t("mem.none")
-      } else {
-        this.marked = true
-        this.markText = "✓"
-        this.markColor = "#9fd18b"
-        if (ebb.isFinished(plan)) {
-          this.status = ebb.TOTAL + "/" + ebb.TOTAL + "轮 · 已背完"
-        } else {
-          this.status = plan.step + 1 + "/" + ebb.TOTAL + "轮 · " + ebb.remainShort(plan, now)
-        }
+  // ---------- 收藏：只改内存副本 + 只写落盘 ----------
+  isFaved() {
+    for (let i = 0; i < this.favs.length; i++) {
+      if (this.favs[i].grade === this.which && this.favs[i].name === this.text) {
+        return true
       }
-    })
+    }
+    return false
+  },
+  refreshFav() {
+    const on = this.isFaved()
+    this.favText = on ? "★" : "☆"
+    this.favColor = on ? "#ffd166" : "#cccccc"
+  },
+  toggleFav() {
+    const arr = this.favs.slice()
+    let index = -1
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].grade === this.which && arr[i].name === this.text) {
+        index = i
+        break
+      }
+    }
+    if (index >= 0) {
+      arr.splice(index, 1)
+    } else {
+      arr.push({ grade: this.which, name: this.text })
+    }
+    this.favs = arr
+    store.saveFavorites(arr)
+    this.refreshFav()
+  },
+  // ---------- 最近阅读：去重置顶，最多 10 条 ----------
+  recordRecent() {
+    const next = [{ grade: this.which, name: this.text }]
+    for (let i = 0; i < this.recent.length; i++) {
+      const r = this.recent[i]
+      if (!(r.grade === this.which && r.name === this.text)) {
+        next.push(r)
+      }
+    }
+    this.recent = next.slice(0, RECENT_MAX)
+    store.saveRecent(this.recent)
+  },
+  // ---------- 记忆计划：只改内存副本 + 只写落盘 ----------
+  refreshPlan() {
+    const plan = this.memMap[store.poemKey(this.which, this.text)]
+    const now = Date.now()
+    this.canReview = ebb.isDue(plan, now)
+    this.markText = "√"
+    if (!plan) {
+      this.markColor = CHECK_OFF
+      this.status = this.$t("mem.none")
+    } else {
+      this.markColor = CHECK_ON
+      if (ebb.isFinished(plan)) {
+        this.status = ebb.TOTAL + "/" + ebb.TOTAL + "轮 · 已背完"
+      } else {
+        this.status = plan.step + 1 + "/" + ebb.TOTAL + "轮 · " + ebb.remainShort(plan, now)
+      }
+    }
   },
   // 打对勾：勾选标记已背完并开始遗忘曲线排程，取消则移出计划
   toggleMark() {
-    if (this.marked) {
-      store.removePlan(this.which, this.text, () => {
-        this.syncPlan()
-      })
+    const key = store.poemKey(this.which, this.text)
+    const map = cloneMap(this.memMap)
+    if (map[key]) {
+      delete map[key]
     } else {
-      store.setPlan(this.which, this.text, ebb.createPlan(Date.now()), () => {
-        this.syncPlan()
-      })
+      map[key] = ebb.createPlan(Date.now())
     }
+    this.memMap = map
+    store.saveMemoryMap(map)
+    this.refreshPlan()
   },
-  // 完成本轮复习
+  // 完成本轮复习，推进到下一轮间隔
   review() {
-    store.getPlan(this.which, this.text, (plan) => {
-      if (plan) {
-        store.setPlan(this.which, this.text, ebb.advance(plan), () => {
-          this.syncPlan()
-        })
-      }
-    })
+    const key = store.poemKey(this.which, this.text)
+    const plan = this.memMap[key]
+    if (!plan) {
+      return
+    }
+    const map = cloneMap(this.memMap)
+    map[key] = ebb.advance(plan)
+    this.memMap = map
+    store.saveMemoryMap(map)
+    this.refreshPlan()
   },
   // 切换上/下一篇（不重建页面，避免路由栈堆积）
   go(offset) {
@@ -173,13 +232,6 @@ export default {
     } else if (eve.direction === "right") {
       this.go(-1)
     }
-  },
-  toggleFav() {
-    store.toggleFavorite(this.which, this.text, (fav) => {
-      this.isFav = fav
-      this.favText = fav ? "★" : "☆"
-      this.favColor = fav ? "#ffd166" : "#cccccc"
-    })
   },
   smaller() {
     if (this.size > MIN_SIZE) {
@@ -205,17 +257,6 @@ export default {
 <style>
 @import "../../common/style.css";
 
-  .item1 {
-    height: 26px;
-    margin-top: 6px;
-    margin-bottom: 6px;
-    border-radius: 9px;
-  }
-
-  .center {
-    align-items: center;
-  }
-
   .page {
     align-items: center;
     background-color: #000000;
@@ -236,54 +277,67 @@ export default {
     text-align: center;
     width: 70%;
     left: 15%;
-    top: 32px;
+    top: 38px;
+  }
+
+  /* 正文滚动区：显式给出左边界、上边界与高度，
+     既不被滚动内容顶穿到顶部篇名，也不延伸到下方状态行/按钮行 */
+  .box {
+    position: absolute;
+    left: 8px;
+    top: 68px;
+    width: 196px;
+    height: 330px;
+  }
+
+  .padtop {
+    height: 8px;
+  }
+
+  /* 尾部留白需大于一行（最大字号下行高 54px），避免滚到底时末行被视口下边缘切半截 */
+  .padbottom {
+    height: 60px;
+  }
+
+  .card {
+    width: 100%;
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 10px;
   }
 
   .a {
     font-size: 22px;
     color: #c5c5c5;
     margin-bottom: 13px;
+    width: 100%;
+    text-align: center;
   }
 
   .b {
     color: #ffffff;
-  }
-
-  /* 正文区：绝对定位 + 上下边界，保证正文只在可视区内滚动 */
-  .box {
-    position: absolute;
-    left: 3px;
-    top: 46px;
-    bottom: 100px;
-    width: 97%;
-  }
-
-  .description {
-    border: 2px solid rgba(255, 255, 255, 0.06);
-    border-radius: 25px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    padding: 9px;
-    font-size: 9px;
-    margin: 0 auto;
+    width: 100%;
+    text-align: center;
   }
 
   .back {
     position: absolute;
-    left: 4px;
-    top: 4px;
-    width: 45px;
-    height: 45px;
-    opacity: 0.5;
+    left: 14px;
+    top: 16px;
+    width: 40px;
+    height: 40px;
+    opacity: 0.55;
   }
 
   /* 记忆计划状态行 */
   .status {
     position: absolute;
-    left: 10px;
-    width: 192px;
-    bottom: 62px;
-    height: 30px;
+    left: 14px;
+    width: 184px;
+    bottom: 90px;
+    height: 26px;
     align-items: center;
   }
 
@@ -295,29 +349,29 @@ export default {
   }
 
   .act {
-    width: 78px;
-    height: 28px;
-    border-radius: 14px;
+    width: 76px;
+    height: 26px;
+    border-radius: 13px;
     color: #ffffff;
     background-color: rgba(120, 200, 120, 0.5);
   }
 
-  /* 底部按钮行：加宽加高，便于点按 */
+  /* 底部按钮行：整体上移、向内收，避开胶囊屏底部圆角，尺寸放大便于点按 */
   .toolbar {
     position: absolute;
-    left: 9px;
-    width: 194px;
-    bottom: 16px;
-    height: 40px;
+    left: 16px;
+    width: 180px;
+    bottom: 40px;
+    height: 42px;
     align-items: center;
     justify-content: space-between;
   }
 
   .tbtn {
     display: flex;
-    width: 45px;
-    height: 40px;
-    border-radius: 20px;
+    width: 40px;
+    height: 42px;
+    border-radius: 21px;
     background-color: rgba(255, 255, 255, 0.16);
     justify-content: center;
     align-items: center;
@@ -330,6 +384,7 @@ export default {
 
   .glyph {
     font-size: 19px;
+    text-align: center;
   }
 
   .tiny {
