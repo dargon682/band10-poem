@@ -6,11 +6,15 @@
     "index": "Textbook",
     "fav": "My Reading",
     "about": "About",
-    "more": "More Info"
+    "more": "More Info",
+    "search": "Search",
+    "memory": "Memory Plan"
   },
   "entry": {
     "fav": "Favorites",
-    "random": "Random"
+    "random": "Random",
+    "search": "Search",
+    "memory": "Memory Plan"
   },
   "action": {
     "more": "More Info",
@@ -18,11 +22,23 @@
     "fav": "☆ Favorite",
     "favDone": "★ Favorited",
     "smaller": "A-",
-    "bigger": "A+"
+    "bigger": "A+",
+    "review": "Done this round"
   },
   "section": {
     "recent": "Recently Read",
     "fav": "Favorites"
+  },
+  "mem": {
+    "due": "Due Today",
+    "learning": "Learning",
+    "done": "Memorized",
+    "none": "Not in plan",
+    "empty": "No plan yet. Tick the box on a poem to start."
+  },
+  "search": {
+    "tip": "Type a title or author to search",
+    "empty": "No matching poem"
   },
   "empty": {
     "recent": "No records",

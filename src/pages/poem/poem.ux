@@ -19,10 +19,20 @@
     <text class="title">{{ text }}</text>
     <image class="back" src="/common/icon/back.png" onclick="back"></image>
 
-    <div class="toolbar row center">
-      <input class="op" type="button" value="{{ favLabel }}" style="font-size: 15px" @click="toggleFav" />
-      <input class="op" type="button" value="A-" style="font-size: 15px" @click="smaller" />
-      <input class="op" type="button" value="A+" style="font-size: 15px" @click="bigger" />
+    <!-- 艾宾浩斯记忆计划状态，到期可完成本轮复习 -->
+    <div class="row status">
+      <text class="stxt">{{ status }}</text>
+      <input class="act" if="{{ canReview }}" type="button" value="{{ reviewLabel }}" style="font-size: 12px" @click="review" />
+    </div>
+
+    <div class="row toolbar">
+      <!-- 打对勾的框：勾选即标记已背完并加入遗忘曲线复习排程，取消则移出 -->
+      <div class="mark" @click="toggleMark">
+        <text class="mtxt">{{ markText }}</text>
+      </div>
+      <input class="op" type="button" value="{{ favLabel }}" style="font-size: 13px" @click="toggleFav" />
+      <input class="op" type="button" value="A-" style="font-size: 13px" @click="smaller" />
+      <input class="op" type="button" value="A+" style="font-size: 13px" @click="bigger" />
     </div>
   </div>
 </template>
@@ -32,6 +42,7 @@ import router from "@system.router"
 import grades from "../../common/grades.js"
 import poems from "../../common/poem.js"
 import store from "../../common/store.js"
+import ebb from "../../common/ebbinghaus.js"
 import clock from "../../common/clock.js"
 
 const MIN_SIZE = 20
@@ -50,9 +61,15 @@ export default {
     isFav: false,
     favLabel: "☆ 收藏",
     names: [],
-    idx: 0
+    idx: 0,
+    marked: false,
+    markText: "",
+    status: "",
+    canReview: false,
+    reviewLabel: "完成本轮"
   },
   onInit() {
+    this.reviewLabel = this.$t("action.review")
     // 本学期篇目名列表，用于上/下篇定位
     this.names = grades.getPoemNames(this.which)
     for (let i = 0; i < this.names.length; i++) {
@@ -75,7 +92,7 @@ export default {
   onDestroy() {
     clearInterval(this.timer)
   },
-  // 加载当前篇目正文，并同步收藏状态与最近阅读
+  // 加载当前篇目正文，并同步收藏状态、最近阅读与记忆计划
   applyCurrent() {
     const item = poems.getPoem(this.which, this.text)
     this.people = item ? item.author : ""
@@ -86,6 +103,45 @@ export default {
       this.favLabel = fav ? "★ 已收藏" : "☆ 收藏"
     })
     store.pushRecent(this.which, this.text)
+    this.syncPlan()
+  },
+  // 同步本篇的复习计划状态
+  syncPlan() {
+    store.getPlan(this.which, this.text, (plan) => {
+      const now = Date.now()
+      this.canReview = ebb.isDue(plan, now)
+      if (!plan) {
+        this.marked = false
+        this.markText = ""
+        this.status = this.$t("mem.none")
+      } else {
+        this.marked = true
+        this.markText = "✓"
+        this.status = ebb.progressText(plan) + " · " + ebb.remainText(plan, now)
+      }
+    })
+  },
+  // 打对勾：勾选标记已背完并开始遗忘曲线排程，取消则移出计划
+  toggleMark() {
+    if (this.marked) {
+      store.removePlan(this.which, this.text, () => {
+        this.syncPlan()
+      })
+    } else {
+      store.setPlan(this.which, this.text, ebb.createPlan(Date.now()), () => {
+        this.syncPlan()
+      })
+    }
+  },
+  // 完成本轮复习
+  review() {
+    store.getPlan(this.which, this.text, (plan) => {
+      if (plan) {
+        store.setPlan(this.which, this.text, ebb.advance(plan), () => {
+          this.syncPlan()
+        })
+      }
+    })
   },
   // 切换上/下一篇（不重建页面，避免路由栈堆积）
   go(offset) {
@@ -185,7 +241,7 @@ export default {
     margin-top: 32px;
     width: 97%;
     flex: 1;
-    margin-bottom: 34px;
+    margin-bottom: 66px;
   }
 
   .description {
@@ -207,16 +263,63 @@ export default {
     opacity: 0.5;
   }
 
+  /* 记忆计划状态行 */
+  .status {
+    position: absolute;
+    left: 0px;
+    bottom: 34px;
+    width: 212px;
+    height: 26px;
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 6px;
+  }
+
+  .stxt {
+    flex: 1;
+    font-size: 13px;
+    color: #9fd18b;
+    text-overflow: ellipsis;
+  }
+
+  .act {
+    width: 68px;
+    height: 22px;
+    border-radius: 11px;
+    color: #ffffff;
+    background-color: rgba(120, 200, 120, 0.45);
+  }
+
   .toolbar {
     position: absolute;
     left: 0px;
-    bottom: 0px;
+    bottom: 2px;
     width: 212px;
-    height: 32px;
+    height: 28px;
+    align-items: center;
+    padding-left: 3px;
+  }
+
+  /* 打对勾的框 */
+  .mark {
+    display: flex;
+    width: 30px;
+    height: 26px;
+    border-radius: 13px;
+    margin-left: 3px;
+    margin-right: 3px;
+    background-color: rgba(255, 255, 255, 0.15);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mtxt {
+    font-size: 16px;
+    color: #9fd18b;
   }
 
   .op {
-    width: 60px;
+    width: 48px;
     height: 26px;
     margin-left: 3px;
     margin-right: 3px;

@@ -1,0 +1,174 @@
+<import name="input-method" src="../../components/InputMethod/InputMethod.ux"></import>
+
+<template>
+  <div class="page">
+    <!-- 顶部：返回 + 已输入内容 -->
+    <div class="bar row">
+      <image class="back" src="/common/icon/back.png" onclick="back"></image>
+      <text class="kwtxt" @click="toggleKb">{{ display }}_</text>
+    </div>
+
+    <!-- 检索结果 -->
+    <scroll class="results" scroll-y="true" bounces="true">
+      <div class="row result" for="{{results}}" tid="key" @click="openItem($item)">
+        <text class="rname">{{ $item.name }}</text>
+        <text class="rauthor">{{ $item.author }}</text>
+      </div>
+      <text class="tip" if="{{tip}}">{{ tip }}</text>
+      <div class="pad"></div>
+    </scroll>
+
+    <!-- 官方文档收录的第三方输入法键盘（MIT，NEORUAA/Vela_input_method） -->
+    <input-method
+      hide="{{hide}}"
+      keyboardtype="{{kbType}}"
+      maxlength="5"
+      vibratemode="short"
+      screentype="pill-shaped"
+      @complete="onComplete"
+      @delete="onDelete"
+      @visibility-change="onVis"
+    ></input-method>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import poems from "../../common/poem.js"
+import search from "../../common/search.js"
+
+export default {
+  private: {
+    kw: "",
+    display: "",
+    results: [],
+    tip: "",
+    hide: false,
+    kbType: "QWERTY",
+    meta: []
+  },
+  onInit() {
+    // 题目 + 作者元数据（不含正文，减小体积）
+    this.meta = poems.getMeta()
+    this.refresh()
+  },
+  // 键盘输出的字符（中文为候选字确认，英文为按键，二者均由 complete 触发）
+  onComplete(eve) {
+    const c = (eve.detail && eve.detail.content) || ""
+    this.kw = this.kw + c
+    this.refresh()
+  },
+  onDelete() {
+    this.kw = this.kw.slice(0, -1)
+    this.refresh()
+  },
+  onVis(eve) {
+    const visible = eve.detail && eve.detail.visible
+    this.hide = !visible
+  },
+  toggleKb() {
+    this.hide = !this.hide
+  },
+  clearKw() {
+    this.kw = ""
+    this.refresh()
+  },
+  // 依据当前输入刷新结果与提示
+  refresh() {
+    this.display = this.kw
+    if (!this.kw) {
+      this.results = []
+      this.tip = this.$t("search.tip")
+      return
+    }
+    const found = search.match(this.meta, this.kw)
+    this.results = found
+    this.tip = found.length > 0 ? "" : this.$t("search.empty")
+  },
+  openItem(item) {
+    router.push({
+      uri: "/pages/poem",
+      params: { text: item.name, which: item.grade }
+    })
+  },
+  back() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #000000;
+  position: absolute;
+}
+
+.bar {
+  width: 100%;
+  height: 45px;
+  align-items: center;
+  padding-left: 3px;
+  padding-right: 6px;
+}
+
+.back {
+  width: 40px;
+  height: 40px;
+  opacity: 0.7;
+  margin-right: 3px;
+}
+
+.kwtxt {
+  flex: 1;
+  font-size: 17px;
+  color: #ffffff;
+  text-overflow: ellipsis;
+}
+
+.results {
+  flex: 1;
+  width: 100%;
+}
+
+.result {
+  width: 98%;
+  height: 40px;
+  margin-left: 2px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding-left: 12px;
+  padding-right: 12px;
+  align-items: center;
+}
+
+.rname {
+  font-size: 17px;
+  color: #ffffff;
+  text-overflow: ellipsis;
+}
+
+.rauthor {
+  font-size: 13px;
+  color: #9a9a9a;
+  margin-left: 8px;
+}
+
+.tip {
+  width: 100%;
+  font-size: 14px;
+  color: #8a8a8a;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.pad {
+  height: 12px;
+}
+</style>

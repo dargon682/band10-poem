@@ -6,11 +6,15 @@
     "index": "课本",
     "fav": "我的阅读",
     "about": "关于",
-    "more": "更多信息"
+    "more": "更多信息",
+    "search": "内容检索",
+    "memory": "记忆计划"
   },
   "entry": {
     "fav": "收藏夹",
-    "random": "随机一首"
+    "random": "随机一首",
+    "search": "内容检索",
+    "memory": "记忆计划"
   },
   "action": {
     "more": "更多信息",
@@ -18,11 +22,23 @@
     "fav": "☆ 收藏",
     "favDone": "★ 已收藏",
     "smaller": "A-",
-    "bigger": "A+"
+    "bigger": "A+",
+    "review": "完成本轮"
   },
   "section": {
     "recent": "最近阅读",
     "fav": "收藏"
+  },
+  "mem": {
+    "due": "今日待复习",
+    "learning": "背诵中",
+    "done": "已背完",
+    "none": "未加入记忆计划",
+    "empty": "还没有背诵计划，去正文页打勾开始"
+  },
+  "search": {
+    "tip": "输入题目或作者开始检索",
+    "empty": "没有匹配的篇目"
   },
   "empty": {
     "recent": "暂无记录",

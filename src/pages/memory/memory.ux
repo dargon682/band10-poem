@@ -1,0 +1,237 @@
+<template>
+  <div class="page">
+    <div class="header row">
+      <text class="title">{{ $t('title.memory') }}</text>
+    </div>
+    <text class="time">{{ time }}</text>
+    <text class="progress">{{ progress }}</text>
+
+    <scroll class="list" scroll-y="true" bounces="true">
+      <text class="sec" if="{{due.length > 0}}">{{ dueTitle }}</text>
+      <div class="row item" for="{{due}}" tid="key">
+        <input class="act" type="button" value="✓" @click="finish($item)" />
+        <text class="nm" @click="openItem($item)">{{ $item.name }}</text>
+        <text class="gd">{{ $item.grade }}</text>
+      </div>
+
+      <text class="sec" if="{{learning.length > 0}}">{{ learningTitle }}</text>
+      <div class="row item" for="{{learning}}" tid="key">
+        <text class="nm" @click="openItem($item)">{{ $item.name }}</text>
+        <text class="gd">{{ $item.remain }}</text>
+      </div>
+
+      <text class="sec" if="{{finished.length > 0}}">{{ doneTitle }}</text>
+      <div class="row item" for="{{finished}}" tid="key">
+        <text class="chk">✓</text>
+        <text class="nm" @click="openItem($item)">{{ $item.name }}</text>
+        <text class="gd">{{ $item.grade }}</text>
+      </div>
+
+      <text class="tip" if="{{empty}}">{{ $t('mem.empty') }}</text>
+      <div class="pad"></div>
+    </scroll>
+
+    <image class="back" src="/common/icon/back.png" onclick="back"></image>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import grades from "../../common/grades.js"
+import store from "../../common/store.js"
+import ebb from "../../common/ebbinghaus.js"
+import clock from "../../common/clock.js"
+
+export default {
+  private: {
+    time: "00:00",
+    progress: "",
+    dueTitle: "",
+    learningTitle: "",
+    doneTitle: "",
+    due: [],
+    learning: [],
+    finished: [],
+    empty: false,
+    all: []
+  },
+  onInit() {
+    this.all = grades.getAllPoems()
+    this.dueTitle = this.$t("mem.due")
+    this.learningTitle = this.$t("mem.learning")
+    this.doneTitle = this.$t("mem.done")
+    this.refresh()
+
+    this.timer = clock.startClock((t) => {
+      this.time = t
+    })
+  },
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+  // 依据艾宾浩斯排程把全部篇目分为：今日待复习 / 背诵中 / 已完成
+  refresh() {
+    store.getMemoryMap((map) => {
+      const now = Date.now()
+      const due = []
+      const learning = []
+      const finished = []
+      let doneCount = 0
+      for (let i = 0; i < this.all.length; i++) {
+        const p = this.all[i]
+        const plan = map[store.poemKey(p.grade, p.name)]
+        if (!plan) {
+          continue
+        }
+        if (ebb.isFinished(plan)) {
+          doneCount++
+          finished.push({ name: p.name, grade: p.grade, remain: "" })
+        } else if (ebb.isDue(plan, now)) {
+          due.push({ name: p.name, grade: p.grade, remain: "" })
+        } else {
+          learning.push({ name: p.name, grade: p.grade, remain: ebb.remainText(plan, now) })
+        }
+      }
+      this.due = due
+      this.learning = learning
+      this.finished = finished
+      this.empty = due.length === 0 && learning.length === 0 && finished.length === 0
+      this.progress = this.$t("mem.done") + " " + doneCount + "/" + this.all.length + " · " + this.$t("mem.learning") + " " + learning.length
+    })
+  },
+  // 完成本轮复习，推进到下一轮间隔
+  finish(item) {
+    store.getPlan(item.grade, item.name, (plan) => {
+      if (!plan) {
+        return
+      }
+      store.setPlan(item.grade, item.name, ebb.advance(plan), () => {
+        this.refresh()
+      })
+    })
+  },
+  openItem(item) {
+    router.push({
+      uri: "/pages/poem",
+      params: { text: item.name, which: item.grade }
+    })
+  },
+  back() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #000000;
+  position: absolute;
+}
+
+.header {
+  width: 100%;
+  height: 46px;
+  align-items: center;
+}
+
+.title {
+  font-size: 22px;
+  color: #ffffff;
+}
+
+.time {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-left: 8px;
+}
+
+.progress {
+  font-size: 14px;
+  color: #9fd18b;
+  margin-left: 8px;
+  margin-bottom: 4px;
+}
+
+.list {
+  flex: 1;
+  width: 100%;
+}
+
+.sec {
+  font-size: 14px;
+  color: #8a8a8a;
+  margin-left: 10px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.item {
+  width: 96%;
+  height: 40px;
+  margin-left: 4px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding-left: 8px;
+  padding-right: 12px;
+  align-items: center;
+}
+
+.nm {
+  flex: 1;
+  font-size: 17px;
+  color: #ffffff;
+  text-overflow: ellipsis;
+}
+
+.gd {
+  font-size: 12px;
+  color: #9a9a9a;
+  margin-left: 6px;
+}
+
+.act {
+  width: 30px;
+  height: 26px;
+  border-radius: 13px;
+  margin-right: 6px;
+  font-size: 14px;
+  color: #ffffff;
+  background-color: rgba(120, 200, 120, 0.5);
+}
+
+.chk {
+  width: 30px;
+  font-size: 14px;
+  color: #9fd18b;
+  margin-right: 6px;
+  text-align: center;
+}
+
+.tip {
+  width: 100%;
+  font-size: 14px;
+  color: #8a8a8a;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.pad {
+  height: 12px;
+}
+
+.back {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 42px;
+  height: 42px;
+  opacity: 0.6;
+}
+</style>

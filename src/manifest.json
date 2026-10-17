@@ -1,8 +1,8 @@
 {
   "package": "com.cgz.poem.band",
   "name": "初高中古诗词",
-  "versionName": "1.0.1-beta",
-  "versionCode": 2,
+  "versionName": "1.1.0-beta",
+  "versionCode": 3,
   "minPlatformVersion": 1000,
   "icon": "/common/logo.png",
   "deviceTypeList": [
@@ -17,6 +17,15 @@
     },
     {
       "name": "system.storage"
+    },
+    {
+      "name": "system.file"
+    },
+    {
+      "name": "system.device"
+    },
+    {
+      "name": "system.vibrator"
     }
   ],
   "config": {
@@ -34,6 +43,12 @@
       },
       "pages/poem": {
         "component": "poem"
+      },
+      "pages/search": {
+        "component": "search"
+      },
+      "pages/memory": {
+        "component": "memory"
       },
       "pages/fav": {
         "component": "fav"

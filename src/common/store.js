@@ -4,6 +4,7 @@ import storage from "@system.storage"
 const FAV_KEY = "cgz_favs"
 const RECENT_KEY = "cgz_recent"
 const SIZE_KEY = "cgz_fontsize"
+const MEM_KEY = "cgz_memory"
 const RECENT_MAX = 10
 
 function parseArray(text) {
@@ -136,6 +137,82 @@ function setFontSize(size) {
   }
 }
 
+// ---------- 艾宾浩斯记忆计划 ----------
+// 存储结构：{ "年级|篇名": { start: 起始时间戳, step: 已完成轮次 } }
+function poemKey(grade, name) {
+  return grade + "|" + name
+}
+
+function readMemory(cb) {
+  try {
+    storage.get({
+      key: MEM_KEY,
+      default: "{}",
+      success: function (data) {
+        let obj = {}
+        if (data) {
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed && typeof parsed === "object") {
+              obj = parsed
+            }
+          } catch (e) {
+            obj = {}
+          }
+        }
+        cb(obj)
+      },
+      fail: function () {
+        cb({})
+      }
+    })
+  } catch (e) {
+    cb({})
+  }
+}
+
+function writeMemory(obj) {
+  try {
+    storage.set({ key: MEM_KEY, value: JSON.stringify(obj) })
+  } catch (e) {
+    // 忽略写入失败
+  }
+}
+
+// 读取全部记忆计划
+function getMemoryMap(cb) {
+  readMemory(cb)
+}
+
+// 读取单篇计划
+function getPlan(grade, name, cb) {
+  readMemory(function (m) {
+    cb(m[poemKey(grade, name)] || null)
+  })
+}
+
+// 写入/覆盖单篇计划
+function setPlan(grade, name, plan, cb) {
+  readMemory(function (m) {
+    m[poemKey(grade, name)] = plan
+    writeMemory(m)
+    if (cb) {
+      cb(plan)
+    }
+  })
+}
+
+// 删除单篇计划（取消“已背完”）
+function removePlan(grade, name, cb) {
+  readMemory(function (m) {
+    delete m[poemKey(grade, name)]
+    writeMemory(m)
+    if (cb) {
+      cb()
+    }
+  })
+}
+
 export default {
   getFavorites: getFavorites,
   isFavorite: isFavorite,
@@ -144,5 +221,10 @@ export default {
   pushRecent: pushRecent,
   clearRecent: clearRecent,
   getFontSize: getFontSize,
-  setFontSize: setFontSize
+  setFontSize: setFontSize,
+  poemKey: poemKey,
+  getMemoryMap: getMemoryMap,
+  getPlan: getPlan,
+  setPlan: setPlan,
+  removePlan: removePlan
 }

@@ -37,8 +37,13 @@ export default {
     })
   },
   onInit() {
-    // 顶部固定入口（收藏夹 / 随机一首）+ 初中、高中年级平铺
-    const list = [{ name: this.$t("entry.fav"), kind: "fav", key: "entry-fav" }, { name: this.$t("entry.random"), kind: "random", key: "entry-random" }]
+    // 顶部固定入口（内容检索 / 记忆计划 / 收藏夹 / 随机一首）+ 初中、高中年级平铺
+    const list = [
+      { name: this.$t("entry.search"), kind: "search", key: "entry-search" },
+      { name: this.$t("entry.memory"), kind: "memory", key: "entry-memory" },
+      { name: this.$t("entry.fav"), kind: "fav", key: "entry-fav" },
+      { name: this.$t("entry.random"), kind: "random", key: "entry-random" }
+    ]
     const gradeList = grades.getGrades()
     for (let i = 0; i < gradeList.length; i++) {
       list.push({ name: gradeList[i].name, kind: "grade", key: "grade-" + i })
@@ -53,7 +58,11 @@ export default {
     clearInterval(this.timer)
   },
   onItem(item) {
-    if (item.kind === "fav") {
+    if (item.kind === "search") {
+      router.push({ uri: "/pages/search" })
+    } else if (item.kind === "memory") {
+      router.push({ uri: "/pages/memory" })
+    } else if (item.kind === "fav") {
       router.push({ uri: "/pages/fav" })
     } else if (item.kind === "random") {
       const all = grades.getAllPoems()
