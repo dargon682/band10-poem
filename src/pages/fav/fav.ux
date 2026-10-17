@@ -1,0 +1,196 @@
+<template>
+  <div class="page" @swipe="toHomePage">
+    <list class="list" bounces="true">
+      <list-item class="item1" type="costom"></list-item>
+      <list-item class="item" type="costom" for="{{list}}" tid="key" @click="onItem($item)">
+        <text class="sec" if="{{ $item.kind === 'header' }}">{{ $item.name }}</text>
+        <text class="empty" elif="{{ $item.kind === 'empty' }}">{{ $item.name }}</text>
+        <div class="row center" elif="{{ $item.kind === 'poem' }}">
+          <text class="name">{{ $item.name }}</text>
+          <text class="grade">{{ $item.grade }}</text>
+        </div>
+      </list-item>
+      <list-item class="item1" type="costom"></list-item>
+    </list>
+
+    <image class="cover" src="/common/icon/cover.png"></image>
+    <text class="time">{{ time }}</text>
+    <text class="title">{{ $t('title.fav') }}</text>
+    <image class="back" src="/common/icon/back.png" onclick="back"></image>
+    <input class="clr" type="button" value="{{ $t('action.clear') }}" style="font-size: 15px" @click="clearHistory" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import store from "../../common/store.js"
+import clock from "../../common/clock.js"
+
+export default {
+  private: {
+    time: "00:00",
+    list: []
+  },
+  onInit() {
+    this.timer = clock.startClock((t) => {
+      this.time = t
+    })
+  },
+  onShow() {
+    // 从正文页收藏/阅读返回后刷新列表
+    this.loadList()
+  },
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+  loadList() {
+    const list = []
+    store.getRecent((recent) => {
+      list.push({ kind: "header", name: this.$t("section.recent"), key: "h-recent" })
+      if (recent.length === 0) {
+        list.push({ kind: "empty", name: this.$t("empty.recent"), key: "e-recent" })
+      } else {
+        for (let i = 0; i < recent.length; i++) {
+          list.push({ kind: "poem", name: recent[i].name, grade: recent[i].grade, key: "r-" + i })
+        }
+      }
+
+      store.getFavorites((favs) => {
+        list.push({ kind: "header", name: this.$t("section.fav"), key: "h-fav" })
+        if (favs.length === 0) {
+          list.push({ kind: "empty", name: this.$t("empty.fav"), key: "e-fav" })
+        } else {
+          for (let j = 0; j < favs.length; j++) {
+            list.push({ kind: "poem", name: favs[j].name, grade: favs[j].grade, key: "f-" + j })
+          }
+        }
+        this.list = list
+      })
+    })
+  },
+  onItem(item) {
+    if (item.kind === "poem") {
+      router.push({
+        uri: "/pages/poem",
+        params: { text: item.name, which: item.grade }
+      })
+    }
+  },
+  clearHistory() {
+    store.clearRecent()
+    this.loadList()
+  },
+  toHomePage(eve) {
+    if (eve.direction === "right") {
+      this.back()
+    }
+  },
+  back() {
+    router.replace({
+      uri: "/pages/index"
+    })
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+.page {
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: absolute;
+  width: 100%;
+}
+
+.title {
+  left: 49px;
+  top: 39px;
+  width: 115px;
+  height: 27px;
+  opacity: 1;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  line-height: 28px;
+  color: rgba(255, 255, 255, 1);
+  text-align: center;
+  vertical-align: top;
+  position: absolute;
+}
+
+.item {
+  height: 52px;
+  margin-left: 6px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  width: 199px;
+  border-radius: 16px;
+  background-color: rgba(38, 38, 38, 1);
+}
+
+.item1 {
+  height: 25px;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.sec {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.empty {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 18px;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.center {
+  align-items: center;
+}
+
+.name {
+  color: white;
+  font-size: 21px;
+  text-overflow: ellipsis;
+  lines: 1;
+  flex: 1;
+  margin-left: 8px;
+}
+
+.grade {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.back {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 45px;
+  height: 45px;
+  opacity: 0.5;
+}
+
+.clr {
+  position: absolute;
+  left: 61px;
+  bottom: 2px;
+  width: 90px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+</style>

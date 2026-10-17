@@ -1,0 +1,39 @@
+/* 各页面完全一致的公共样式，通过 @import 引入，避免重复维护
+   注意：仅收纳取值一致的规则，取值因页面而异的（如 .page/.center）仍保留在各页面内 */
+.cover {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 212px;
+  height: 64px;
+  opacity: 1;
+}
+
+.time {
+  left: 49px;
+  top: 4px;
+  width: 115px;
+  height: 30px;
+  opacity: 1;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  line-height: 21px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  vertical-align: top;
+  position: absolute;
+}
+
+.column {
+  flex-direction: column;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.list {
+  width: 100%;
+  flex: 1;
+}

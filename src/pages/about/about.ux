@@ -1,0 +1,195 @@
+<template>
+  <div class="page download-page" @swipe="toHomePage">
+    <div class="header column center">
+      <text class="a">{{ $t('title.about') }}</text>
+    </div>
+    <text class="time">{{ time }}</text>
+
+    <image class="icon" src="/common/icon/something.png"></image>
+
+    <text class="people">参与开发的人员</text>
+    <text class="ren">@Dreamqiu</text>
+
+    <text class="people2">二次开发的人员</text>
+    <text class="ren2">@JIFENG @ziqianou @dargon</text>
+
+    <text class="people3">设计参考</text>
+    <text class="ren3">@无源流沙</text>
+
+    <input
+      class="but"
+      type="button"
+      value="{{ $t('action.more') }}"
+      style="font-size: 19px; color: #ffffff"
+      onclick="more"
+    />
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import clock from "../../common/clock.js"
+
+export default {
+  private: {
+    time: "00:00"
+  },
+  onInit() {
+    this.timer = clock.startClock((t) => {
+      this.time = t
+    })
+  },
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+  more() {
+    router.push({
+      uri: "/pages/more"
+    })
+  },
+  toHomePage(eve) {
+    if (eve.direction === "right") {
+      router.replace({
+        uri: "/pages/index"
+      })
+    }
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+.but {
+  left: 44px;
+  margin-top: 189px;
+  width: 120px;
+  height: 41px;
+  opacity: 1;
+  border-radius: 23px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.download-page {
+  display: flex;
+  flex-direction: column;
+
+  height: 100%;
+  position: absolute;
+  width: 100%;
+}
+
+text {
+  color: #ffffff;
+}
+
+.column {
+  /* 竖直 */
+  flex-direction: column;
+}
+
+.center {
+  align-items: center;
+  justify-content: center;
+}
+
+.header {
+  margin-top: 35px;
+}
+
+.page {
+  background-color: #000000;
+  width: 212px;
+  height: 303px;
+}
+
+.icon {
+  margin-top: 19px;
+  left: 5px;
+  top: 0px;
+  width: 202px;
+  height: 202px;
+  opacity: 1;
+}
+
+.a {
+  font-size: 25px;
+}
+
+.ren {
+  position: absolute;
+  left: 7px;
+  top: 322px;
+  width: 143px;
+  height: 28px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ren2 {
+  position: absolute;
+  left: 7px;
+  top: 379px;
+  height: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ren3 {
+  position: absolute;
+  left: 7px;
+  top: 435px;
+  width: 143px;
+  height: 28px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(255, 255, 255);
+  text-align: left;
+  vertical-align: top;
+}
+
+.people {
+  left: 7px;
+  top: 297px;
+  width: 143px;
+  height: 27px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: left;
+  vertical-align: top;
+  position: absolute;
+}
+
+.people2 {
+  left: 7px;
+  top: 353px;
+  width: 143px;
+  height: 27px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: left;
+  vertical-align: top;
+  position: absolute;
+}
+
+.people3 {
+  left: 7px;
+  top: 410px;
+  width: 143px;
+  height: 27px;
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: left;
+  vertical-align: top;
+  position: absolute;
+}
+</style>

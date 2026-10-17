@@ -1,0 +1,10 @@
+<script>
+export default {
+  onCreate() {
+    // 应用创建
+  },
+  onDestroy() {
+    // 应用销毁
+  }
+}
+</script>

@@ -1,0 +1,159 @@
+<template>
+	<div class="page" @swipe="exit">
+		<!-- 点击跳转详情页 -->
+		<list class="list" bounces="true">
+			<list-item class="item1 justify-between" type="costom"></list-item>
+			<list-item class="item justify-between" type="costom" for="{{list}}" tid="key" @click="onItem($item)">
+				<div class="center">
+					<text class="name">{{ $item.name }}</text>
+				</div>
+			</list-item>
+			<list-item class="item1 justify-between" type="costom"></list-item>
+		</list>
+
+		<image class="cover" src="/common/icon/cover.png"></image>
+		<text class="time">{{ time }}</text>
+		<text class="title">{{ $t('title.index') }}</text>
+		<image class="back" src="/common/icon/back.png" onclick="back"></image>
+		<image class="about" src="/common/icon/more.png" onclick="about"></image>
+	</div>
+</template>
+
+<script>
+import router from "@system.router"
+import grades from "../../common/grades.js"
+import clock from "../../common/clock.js"
+
+export default {
+  // 页面级组件的数据模型，影响传入数据的覆盖机制：private内定义的属性不允许被覆盖
+  private: {
+    title: "示例页面",
+    time: "00:00",
+    list: []
+  },
+  about() {
+    router.replace({
+      uri: "/pages/about"
+    })
+  },
+  onInit() {
+    // 顶部固定入口（收藏夹 / 随机一首）+ 初中、高中年级平铺
+    const list = [{ name: this.$t("entry.fav"), kind: "fav", key: "entry-fav" }, { name: this.$t("entry.random"), kind: "random", key: "entry-random" }]
+    const gradeList = grades.getGrades()
+    for (let i = 0; i < gradeList.length; i++) {
+      list.push({ name: gradeList[i].name, kind: "grade", key: "grade-" + i })
+    }
+    this.list = list
+
+    this.timer = clock.startClock((t) => {
+      this.time = t
+    })
+  },
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+  onItem(item) {
+    if (item.kind === "fav") {
+      router.push({ uri: "/pages/fav" })
+    } else if (item.kind === "random") {
+      const all = grades.getAllPoems()
+      if (all.length > 0) {
+        const one = all[Math.floor(Math.random() * all.length)]
+        router.push({
+          uri: "/pages/poem",
+          params: { text: one.name, which: one.grade }
+        })
+      }
+    } else {
+      router.push({
+        uri: "/pages/detail",
+        params: { which: item.name }
+      })
+    }
+  },
+  exit(eve) {
+    if (eve.direction === "right") {
+      this.$app.exit()
+    }
+  },
+  back() {
+    this.$app.exit()
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+.about {
+  position: absolute;
+  left: 134px;
+  top: 23px;
+  width: 50px;
+  height: 50px;
+}
+
+.page {
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: absolute;
+  width: 100%;
+}
+
+.center {
+  align-items: center;
+}
+
+.name {
+  color: white;
+  font-size: 28px;
+  text-overflow: ellipsis;
+}
+
+.title {
+  left: 49px;
+  top: 39px;
+  width: 115px;
+  height: 27px;
+  opacity: 1;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  line-height: 28px;
+  color: rgba(255, 255, 255, 1);
+  text-align: center;
+  vertical-align: top;
+  position: absolute;
+}
+
+.item {
+  justify-content: center;
+  margin-left: 6px;
+  height: 57px;
+  margin-top: 16px;
+  width: 199px;
+  margin-bottom: 9px;
+  border-radius: 22px;
+  background-color: rgba(38, 38, 38, 1);
+}
+
+.item1 {
+  height: 25px;
+  margin-top: 28px;
+  margin-bottom: 25px;
+  border-radius: 32px;
+}
+
+.back {
+  position: absolute;
+  left: 28px;
+  top: 23px;
+  width: 50px;
+  height: 50px;
+}
+</style>

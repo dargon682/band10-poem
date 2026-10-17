@@ -1,0 +1,32 @@
+{
+  "a": {
+    "b": "default hello"
+  },
+  "title": {
+    "index": "课本",
+    "fav": "我的阅读",
+    "about": "关于",
+    "more": "更多信息"
+  },
+  "entry": {
+    "fav": "收藏夹",
+    "random": "随机一首"
+  },
+  "action": {
+    "more": "更多信息",
+    "clear": "清空历史",
+    "fav": "☆ 收藏",
+    "favDone": "★ 已收藏",
+    "smaller": "A-",
+    "bigger": "A+"
+  },
+  "section": {
+    "recent": "最近阅读",
+    "fav": "收藏"
+  },
+  "empty": {
+    "recent": "暂无记录",
+    "fav": "暂无收藏",
+    "poem": "暂无内容"
+  }
+}

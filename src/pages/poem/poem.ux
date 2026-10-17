@@ -1,0 +1,227 @@
+<template>
+  <div class="page" @swipe="onSwipe">
+    <!-- 左右滑动切换上/下一篇 -->
+    <scroll class="column box center" scroll-y="true" bounces="true">
+      <div class="item1"></div>
+
+      <div class="description footer column center">
+        <text class="a">{{ people }}</text>
+        <text class="b" style="font-size: {{ size }}px; line-height: {{ lineHeight }}px">{{ poem }}</text>
+      </div>
+
+      <div class="item1"></div>
+      <div class="item1"></div>
+      <div class="item1"></div>
+    </scroll>
+    <image class="cover" src="/common/icon/cover.png"></image>
+    <text class="time">{{ time }}</text>
+
+    <text class="title">{{ text }}</text>
+    <image class="back" src="/common/icon/back.png" onclick="back"></image>
+
+    <div class="toolbar row center">
+      <input class="op" type="button" value="{{ favLabel }}" style="font-size: 15px" @click="toggleFav" />
+      <input class="op" type="button" value="A-" style="font-size: 15px" @click="smaller" />
+      <input class="op" type="button" value="A+" style="font-size: 15px" @click="bigger" />
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import grades from "../../common/grades.js"
+import poems from "../../common/poem.js"
+import store from "../../common/store.js"
+import clock from "../../common/clock.js"
+
+const MIN_SIZE = 20
+const MAX_SIZE = 34
+
+export default {
+  // 页面级组件的数据模型，影响传入数据的覆盖机制：private内定义的属性不允许被覆盖
+  private: {
+    time: "00:00",
+    people: "",
+    poem: "",
+    text: "古诗",
+    which: "",
+    size: 26,
+    lineHeight: 42,
+    isFav: false,
+    favLabel: "☆ 收藏",
+    names: [],
+    idx: 0
+  },
+  onInit() {
+    // 本学期篇目名列表，用于上/下篇定位
+    this.names = grades.getPoemNames(this.which)
+    for (let i = 0; i < this.names.length; i++) {
+      if (this.names[i] === this.text) {
+        this.idx = i
+        break
+      }
+    }
+    this.applyCurrent()
+
+    store.getFontSize((size) => {
+      this.size = size
+      this.lineHeight = Math.round(size * 1.6)
+    })
+
+    this.timer = clock.startClock((t) => {
+      this.time = t
+    })
+  },
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+  // 加载当前篇目正文，并同步收藏状态与最近阅读
+  applyCurrent() {
+    const item = poems.getPoem(this.which, this.text)
+    this.people = item ? item.author : ""
+    this.poem = item ? item.content : "暂无内容"
+
+    store.isFavorite(this.which, this.text, (fav) => {
+      this.isFav = fav
+      this.favLabel = fav ? "★ 已收藏" : "☆ 收藏"
+    })
+    store.pushRecent(this.which, this.text)
+  },
+  // 切换上/下一篇（不重建页面，避免路由栈堆积）
+  go(offset) {
+    const next = this.idx + offset
+    if (next < 0 || next >= this.names.length) {
+      return
+    }
+    this.idx = next
+    this.text = this.names[next]
+    this.applyCurrent()
+  },
+  onSwipe(eve) {
+    if (eve.direction === "left") {
+      this.go(1)
+    } else if (eve.direction === "right") {
+      this.go(-1)
+    }
+  },
+  toggleFav() {
+    store.toggleFavorite(this.which, this.text, (fav) => {
+      this.isFav = fav
+      this.favLabel = fav ? "★ 已收藏" : "☆ 收藏"
+    })
+  },
+  smaller() {
+    if (this.size > MIN_SIZE) {
+      this.setSize(this.size - 2)
+    }
+  },
+  bigger() {
+    if (this.size < MAX_SIZE) {
+      this.setSize(this.size + 2)
+    }
+  },
+  setSize(size) {
+    this.size = size
+    this.lineHeight = Math.round(size * 1.6)
+    store.setFontSize(size)
+  },
+  back() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+@import "../../common/style.css";
+
+  .item1 {
+    height: 38px;
+    margin-top: 9px;
+    margin-bottom: 9px;
+    border-radius: 9px;
+  }
+
+  .center {
+    align-items: center;
+  }
+
+  .page {
+    align-items: center;
+    justify-content: center;
+    background-color: #000000;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+  }
+
+  .title {
+    position: absolute;
+    color: rgba(255, 255, 255, 1);
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: 0px;
+    line-height: 28px;
+    text-align: center;
+    vertical-align: top;
+    width: 70%;
+    text-align: center;
+    top: 32px;
+  }
+
+  .a {
+    font-size: 22px;
+    color: #c5c5c5;
+    margin-bottom: 13px;
+  }
+
+  .b {
+    color: #ffffff;
+  }
+
+  .box {
+    margin-top: 32px;
+    width: 97%;
+    flex: 1;
+    margin-bottom: 34px;
+  }
+
+  .description {
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 25px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 9px;
+    font-size: 9px;
+    margin: 0 auto;
+  }
+
+  .back {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: 45px;
+    height: 45px;
+    opacity: 0.5;
+  }
+
+  .toolbar {
+    position: absolute;
+    left: 0px;
+    bottom: 0px;
+    width: 212px;
+    height: 32px;
+  }
+
+  .op {
+    width: 60px;
+    height: 26px;
+    margin-left: 3px;
+    margin-right: 3px;
+    border-radius: 13px;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+</style>

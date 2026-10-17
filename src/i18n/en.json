@@ -1,0 +1,32 @@
+{
+  "a": {
+    "b": "hello"
+  },
+  "title": {
+    "index": "Textbook",
+    "fav": "My Reading",
+    "about": "About",
+    "more": "More Info"
+  },
+  "entry": {
+    "fav": "Favorites",
+    "random": "Random"
+  },
+  "action": {
+    "more": "More Info",
+    "clear": "Clear History",
+    "fav": "☆ Favorite",
+    "favDone": "★ Favorited",
+    "smaller": "A-",
+    "bigger": "A+"
+  },
+  "section": {
+    "recent": "Recently Read",
+    "fav": "Favorites"
+  },
+  "empty": {
+    "recent": "No records",
+    "fav": "No favorites",
+    "poem": "No content"
+  }
+}
