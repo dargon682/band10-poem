@@ -139,6 +139,8 @@ export default {
   top: 54px;
   bottom: 0;
   width: 100%;
+  /* Vela 的 scroll 默认按 row 排列子元素，必须显式 column 才能纵向滚动 */
+  flex-direction: column;
 }
 
 .result {

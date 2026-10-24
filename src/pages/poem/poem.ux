@@ -281,13 +281,15 @@ export default {
   }
 
   /* 正文滚动区：显式给出左边界、上边界与高度，
-     既不被滚动内容顶穿到顶部篇名，也不延伸到下方状态行/按钮行 */
+     既不被滚动内容顶穿到顶部篇名，也不延伸到下方状态行/按钮行。
+     Vela 的 scroll 默认按 row 排列子元素，必须显式 column 才能纵向滚动 */
   .box {
     position: absolute;
     left: 8px;
     top: 68px;
     width: 196px;
     height: 330px;
+    flex-direction: column;
   }
 
   .padtop {
